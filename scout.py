@@ -1,9 +1,11 @@
-
+import os
 import requests
 from playwright.sync_api import sync_playwright
 
-# 🚩 PLACE YOUR MAKE.COM LINK BETWEEN THE QUOTES BELOW 🚩
-WEBHOOK_URL = "https://hook.eu1.make.com/8oopkf4gdhwkp24757jrtx3wbxf9f9qh"
+# This looks for the secret we set in GitHub
+WEBHOOK_URL = os.environ.get('MAKE_URL') 
+
+# ... (the rest of your run_scout function stays the same)
 
 def run_scout():
     with sync_playwright() as p:
@@ -33,4 +35,5 @@ def run_scout():
         browser.close()
 
 if __name__ == "__main__":
+
     run_scout()
