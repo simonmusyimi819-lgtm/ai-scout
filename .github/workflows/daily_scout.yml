@@ -1,0 +1,28 @@
+name: Daily News Scout
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # Runs every day at 8:00 AM UTC
+  workflow_dispatch: # This adds a manual "Play" button
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests playwright
+          playwright install chromium
+
+      - name: Run Scout
+        env:
+          MAKE_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+        run: python scout.py
