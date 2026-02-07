@@ -1,45 +1,30 @@
-import os
-import requests
+import os, requests
 from playwright.sync_api import sync_playwright
 
 def run_scout():
-    # Target: Companies hiring for 'Director of Sales' in Tech
-    # This signals they have money and need to grow.
-    search_url = "https://www.google.com/search?q=site:greenhouse.io+OR+site:lever.co+%22Director+of+Sales%22+SaaS"
+    # We use a 'User-Agent' to trick Google into thinking we are a normal Chrome browser
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 
-    try:
-        with sync_playwright() as p:
-            print("🌐 Opening Browser...")
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
-            page.goto(search_url)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        # Apply the User-Agent here
+        context = browser.new_context(user_agent=user_agent)
+        page = context.new_page()
+        
+        # SEARCH FOR JOBS
+        page.goto("https://www.google.com/search?q=site:greenhouse.io+%22Director+of+Sales%22")
+        
+        # Wait for results to load
+        page.wait_for_selector("h3")
+        results = page.locator("h3").all_text_contents()[:5]
+        
+        if not results:
+            print("No results found. Google might be blocking us.")
+            return
 
-            # Grab the top 5 results (Company names usually in the title)
-            results = page.locator("h3").all() if hasattr(page.locator("h3"), 'all') else page.query_selector_all("h3")
-            found_leads = ", ".join([r.inner_text() for r in results[:5]])
-            
-            # Clean the data
-            print(f"🔎 Found leads: {found_leads[:50]}...")
-
-            payload = {
-                "source": "Hiring Signal",
-                "content": found_leads
-            }
-
-            # Send to Make.com
-            webhook_url = os.environ.get('MAKE_URL')
-            if webhook_url:
-                response = requests.post(webhook_url, json=payload)
-                if response.status_code == 200:
-                    print("✅ Success! Payload sent to Make.com")
-                else:
-                    print(f"❌ Failed. Error code: {response.status_code}")
-            else:
-                print("⚠️  MAKE_URL environment variable not set")
-            
-            browser.close()
-    except Exception as e:
-        print(f"❌ Error during execution: {e}")
+        payload = {"source": "Money Scout", "content": str(results)}
+        requests.post(os.environ.get('MAKE_URL'), json=payload)
+        browser.close()
 
 if __name__ == "__main__":
     run_scout()
